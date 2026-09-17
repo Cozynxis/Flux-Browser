@@ -1,0 +1,42 @@
+name: Build Flux Windows
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ main ]
+
+jobs:
+  build:
+    runs-on: windows-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Restore
+        run: dotnet restore FluxBrowser.csproj
+
+      - name: Publish Flux.exe
+        run: dotnet publish FluxBrowser.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -o artifacts/publish
+
+      - name: Build Flux Setup Wizard
+        run: '& "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" "installer\FluxBrowser.iss"'
+        shell: powershell
+
+      - name: Upload portable Flux
+        uses: actions/upload-artifact@v4
+        with:
+          name: Flux-Windows-x64
+          path: artifacts/publish/
+
+      - name: Upload installer
+        uses: actions/upload-artifact@v4
+        with:
+          name: FluxSetup-Windows-x64
+          path: artifacts/installer/FluxSetup.exe
